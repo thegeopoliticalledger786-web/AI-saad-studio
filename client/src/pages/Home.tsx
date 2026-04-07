@@ -81,11 +81,16 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
     setChatMessages((prev) => [...prev, { role: "user", content: userMsg }]);
 
     try {
-      const result = await chatMutation.mutateAsync({ message: userMsg });
-      const replyText = typeof result.reply === 'string' ? result.reply : (result.reply as any)?.text || 'No response';
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg })
+      });
+      const result = await response.json();
+      const replyText = result.reply || result.error || "No response";
       setChatMessages((prev) => [...prev, { role: "assistant", content: replyText }]);
     } catch (error) {
-      setChatMessages((prev) => [...prev, { role: "assistant", content: "❌ Error: Could not process your message." }]);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: "❌ Error: Could not process your message. Check console for details." }]);
     }
   };
 
