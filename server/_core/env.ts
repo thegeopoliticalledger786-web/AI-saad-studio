@@ -6,5 +6,5 @@ export const ENV = {
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY || "sk-proj-v1-G_Z9-p8r-q9-Z9-p8r-q9-Z9-p8r-q9-Z9-p8r-q9-Z9-p8r-q9-Z9-p8r-q9-Z9-p8r-q9",
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY || "AIzaSyBUo995G7yp--3W8Tph0brb4ersUMqVlQ8",
 };
