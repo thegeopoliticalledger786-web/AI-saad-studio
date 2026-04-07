@@ -216,12 +216,7 @@ const resolveApiUrl = () =>
 
 const assertApiKey = () => {
   if (!ENV.forgeApiKey) {
-    // If not provided in environment, use the pre-configured secret if available
-    const defaultKey = process.env.OPENAI_API_KEY || "";
-    if (!defaultKey) {
-      throw new Error("OPENAI_API_KEY is not configured");
-    }
-    ENV.forgeApiKey = defaultKey;
+    throw new Error("OPENAI_API_KEY is not configured");
   }
 };
 
