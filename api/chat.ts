@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const API_KEY = "AIzaSyCUZoji5Q4rC0R-xQYggS0rFNEI6QofsAE";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -28,7 +28,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      return res.status(response.status).json({ error: 'Gemini API Error', details: errorText });
+      console.error("Gemini API Error Response:", errorText);
+      return res.status(response.status).json({ 
+        error: 'AI is currently unavailable in your region or API key is invalid.', 
+        details: errorText 
+      });
     }
 
     const data = await response.json();
