@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const OPENROUTER_API_KEY = "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";
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -13,17 +13,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Message is required' });
   }
 
+  if (!GROQ_API_KEY) {
+    return res.status(500).json({ error: 'API configuration error: GROQ_API_KEY is missing in Vercel environment.' });
+  }
+
   try {
-    const response = await fetch(OPENROUTER_URL, {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://ai-saad-studio.vercel.app', // Optional, for OpenRouter analytics
-        'X-Title': 'AI Saad Studio', // Optional, for OpenRouter analytics
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-flash-1.5', // Using a reliable model via OpenRouter
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
@@ -33,15 +35,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             role: 'user',
             content: message
           }
-        ]
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenRouter API Error Response:", errorText);
+      console.error("Groq API Error Response:", errorText);
       return res.status(response.status).json({ 
-        error: 'AI is currently unavailable. Please check your OpenRouter credits or API key.', 
+        error: 'AI service is temporarily unavailable.', 
         details: errorText 
       });
     }
