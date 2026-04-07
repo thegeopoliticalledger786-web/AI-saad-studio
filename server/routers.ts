@@ -39,7 +39,7 @@ export const appRouter = router({
       }),
   }),
 
-  // Image Prompt Generator
+  // Image Prompt Generator & Real Image Generation
   imagePrompt: router({
     generate: publicProcedure
       .input(z.object({ description: z.string().min(1), style: z.string() }))
@@ -49,11 +49,20 @@ export const appRouter = router({
             messages: [
               {
                 role: "user",
-                content: `Create a highly detailed, professional image generation prompt for: "${input.description}". Style: ${input.style}. Include lighting, composition, mood, technical details, camera settings, and artistic elements. Make it suitable for AI image generation tools.`,
+                content: `Create a highly detailed, professional image generation prompt for: "${input.description}". Style: ${input.style}. Include lighting, composition, mood, technical details, camera settings, and artistic elements. Make it suitable for AI image generation tools. Provide ONLY the prompt text.`,
               },
             ],
           });
-          return { prompt: response.choices?.[0]?.message?.content || "Could not generate prompt." };
+          const promptText = response.choices?.[0]?.message?.content || "Could not generate prompt.";
+          
+          // Generate actual image URL using Pollinations.ai
+          const encodedPrompt = encodeURIComponent(promptText);
+          const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&enhance=true`;
+          
+          return { 
+            prompt: promptText,
+            imageUrl: imageUrl
+          };
         } catch (error) {
           console.error("LLM Error:", error);
           return { prompt: "Error: Could not generate image prompt. Please try again." };
@@ -75,7 +84,8 @@ export const appRouter = router({
               },
             ],
           });
-          return { content: response.choices?.[0]?.message?.content || "Could not generate content." };
+          const contentText = response.choices?.[0]?.message?.content || "Could not generate content.";
+          return { content: contentText };
         } catch (error) {
           console.error("LLM Error:", error);
           return { content: "Error: Could not generate content. Please try again." };
@@ -97,7 +107,8 @@ export const appRouter = router({
               },
             ],
           });
-          return { code: response.choices?.[0]?.message?.content || "Could not generate code." };
+          const codeText = response.choices?.[0]?.message?.content || "Could not generate code.";
+          return { code: codeText };
         } catch (error) {
           console.error("LLM Error:", error);
           return { code: "Error: Could not generate code. Please try again." };
@@ -120,7 +131,8 @@ export const appRouter = router({
               },
             ],
           });
-          return { translation: response.choices?.[0]?.message?.content || "Could not translate." };
+          const translationText = response.choices?.[0]?.message?.content || "Could not translate.";
+          return { translation: translationText };
         } catch (error) {
           console.error("LLM Error:", error);
           return { translation: "Error: Could not translate. Please try again." };

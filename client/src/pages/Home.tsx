@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Loader2, Copy, Check } from "lucide-react";
+import { Loader2, Copy, Check, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 type Tab = "chat" | "image" | "write" | "code" | "translate";
@@ -38,6 +38,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
   const [imgPrompt, setImgPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Photorealistic");
   const [imgOutput, setImgOutput] = useState("");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const imgMutation = trpc.imagePrompt.generate.useMutation();
 
   // Content Writer state
@@ -90,7 +91,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
       const replyText = result.reply || result.error || "No response";
       setChatMessages((prev) => [...prev, { role: "assistant", content: replyText }]);
     } catch (error) {
-      setChatMessages((prev) => [...prev, { role: "assistant", content: "❌ Error: Could not process your message. Check console for details." }]);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: "❌ Error: Could not process your message. Please try again." }]);
     }
   };
 
@@ -101,8 +102,10 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
     }
     try {
       const result = await imgMutation.mutateAsync({ description: imgPrompt, style: selectedStyle });
-      const promptText = typeof result.prompt === 'string' ? result.prompt : (result.prompt as any)?.text || 'No prompt';
-      setImgOutput(promptText);
+      setImgOutput(result.prompt);
+      if (result.imageUrl) {
+        setGeneratedImageUrl(result.imageUrl);
+      }
     } catch (error) {
       toast.error("Failed to generate prompt");
     }
@@ -115,8 +118,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
     }
     try {
       const result = await writeMutation.mutateAsync({ topic: writeTopic, type: writeType, language: writeLang });
-      const contentText = typeof result.content === 'string' ? result.content : (result.content as any)?.text || 'No content';
-      setWriteOutput(contentText);
+      setWriteOutput(result.content);
     } catch (error) {
       toast.error("Failed to generate content");
     }
@@ -129,8 +131,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
     }
     try {
       const result = await codeMutation.mutateAsync({ description: codeDesc, language: codeLang });
-      const codeText = typeof result.code === 'string' ? result.code : (result.code as any)?.text || 'No code';
-      setCodeOutput(codeText);
+      setCodeOutput(result.code);
     } catch (error) {
       toast.error("Failed to generate code");
     }
@@ -143,8 +144,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
     }
     try {
       const result = await transMutation.mutateAsync({ text: transText, from: transFrom, to: transTo });
-      const translationText = typeof result.translation === 'string' ? result.translation : (result.translation as any)?.text || 'No translation';
-      setTransOutput(translationText);
+      setTransOutput(result.translation);
     } catch (error) {
       toast.error("Failed to translate");
     }
@@ -175,7 +175,7 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
               }`}
             >
               {tab === "chat" && "💬 AI Chatbot"}
-              {tab === "image" && "🖼️ Image Ideas"}
+              {tab === "image" && "🖼️ AI Image Generator"}
               {tab === "write" && "✍️ AI Writer"}
               {tab === "code" && "💻 Code Helper"}
               {tab === "translate" && "🌍 Translator"}
@@ -235,21 +235,21 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
           </div>
         )}
 
-        {/* Image Prompt Tab */}
+        {/* Image Generator Tab */}
         {activeTab === "image" && (
           <div className="bg-[#2a2a3e] rounded-xl p-8 border border-[#3a3a4e] shadow-xl">
-            <h2 className="text-2xl font-bold text-[#6366f1] mb-6">🖼️ Image Prompt Generator</h2>
+            <h2 className="text-2xl font-bold text-[#6366f1] mb-6">🖼️ AI Image Generator (Script to Image)</h2>
             <div className="mb-6">
-              <label className="block text-[#a0a0b0] mb-2 font-semibold">Image ka description likhein</label>
+              <label className="block text-[#a0a0b0] mb-2 font-semibold">Image ka description ya script likhein</label>
               <textarea
                 value={imgPrompt}
                 onChange={(e) => setImgPrompt(e.target.value)}
-                placeholder="Jaise: A futuristic city at sunset with flying cars..."
+                placeholder="Jaise: A futuristic city at sunset with flying cars, high resolution, 8k..."
                 className="w-full px-4 py-3 bg-[#1e1e2e] border border-[#3a3a4e] rounded-lg text-white placeholder-[#a0a0b0] focus:outline-none focus:border-[#6366f1] min-h-24"
               />
             </div>
             <div className="mb-6">
-              <label className="block text-[#a0a0b0] mb-3 font-semibold">Style choose karein</label>
+              <label className="block text-[#a0a0b0] mb-3 font-semibold">Style Select Karein</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {["Photorealistic", "Digital Art", "Anime", "Oil Painting", "3D Render", "Watercolor"].map((style) => (
                   <button
@@ -269,21 +269,49 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
             <Button
               onClick={generateImagePrompt}
               disabled={imgMutation.isPending}
-              className="w-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:shadow-lg mb-6"
+              className="w-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] hover:shadow-lg mb-6 py-6 text-lg"
             >
-              {imgMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : "✨"} Enhanced Prompt Generate Karein
+              {imgMutation.isPending ? <Loader2 className="animate-spin mr-2" /> : "🎨"} Image Generate Karein
             </Button>
+            
+            {generatedImageUrl && (
+              <div className="mb-8 bg-[#1e1e2e] rounded-xl p-4 border border-[#3a3a4e] overflow-hidden">
+                <h3 className="text-[#10b981] font-semibold mb-4 flex items-center gap-2">
+                  <Check className="w-5 h-5" /> Generated Image
+                </h3>
+                <div className="relative group rounded-lg overflow-hidden border border-[#3a3a4e] bg-black/20">
+                  <img 
+                    src={generatedImageUrl} 
+                    alt="AI Generated" 
+                    className="w-full h-auto object-contain max-h-[600px] transition-transform duration-500 group-hover:scale-[1.02]"
+                    onLoad={() => toast.success("Image loaded successfully!")}
+                  />
+                  <div className="absolute bottom-4 right-4 flex gap-2">
+                    <a 
+                      href={generatedImageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="p-3 bg-[#6366f1] text-white rounded-full shadow-lg hover:bg-[#4f46e5] transition-all"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {imgOutput && (
               <div className="bg-[#1e1e2e] rounded-lg p-4 border border-[#3a3a4e]">
-                <h3 className="text-[#10b981] font-semibold mb-3">✅ Enhanced Image Prompt</h3>
-                <p className="text-white whitespace-pre-wrap mb-4">{imgOutput}</p>
+                <h3 className="text-[#6366f1] font-semibold mb-3">📝 Enhanced Prompt Used</h3>
+                <p className="text-white/80 text-sm italic whitespace-pre-wrap mb-4">{imgOutput}</p>
                 <Button
                   onClick={() => copyToClipboard(imgOutput)}
                   variant="outline"
                   className="border-[#3a3a4e] text-white hover:bg-[#3a3a4e]"
                 >
                   {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  Copy Karein
+                  Copy Prompt
                 </Button>
               </div>
             )}
@@ -486,11 +514,12 @@ Agar aap ko kisi bhi help ki zarurat ho ya online commission-based kaam karna ch
           <p className="text-[#a0a0b0] mb-6">Advanced AI tools — bilkul free, bilkul easy</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://wa.me/923001234567"
+              href="https://wa.me/923133488621"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA" className="w-5 h-5 invert" />
               📱 WhatsApp Karein
             </a>
             <a
