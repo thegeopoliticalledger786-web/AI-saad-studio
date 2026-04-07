@@ -25,16 +25,13 @@ export const appRouter = router({
           const response = await invokeLLM({
             messages: [
               {
-                role: "system",
-                content: "You are AI Saad Studio, a helpful AI assistant. Respond in Urdu, English, or Roman Urdu based on the user's language. Be friendly, helpful, and concise.",
-              },
-              {
                 role: "user",
-                content: input.message,
+                content: `System: You are AI Saad Studio, a helpful AI assistant. Respond in Urdu, English, or Roman Urdu based on the user's language. Be friendly, helpful, and concise.\n\nUser: ${input.message}`,
               },
             ],
           });
-          return { reply: response.choices?.[0]?.message?.content || "Sorry, I could not generate a response." };
+          const replyText = response.choices?.[0]?.message?.content || "Sorry, I could not generate a response.";
+          return { reply: replyText };
         } catch (error) {
           console.error("LLM Error:", error);
           return { reply: "Error: Could not process your message. Please try again." };

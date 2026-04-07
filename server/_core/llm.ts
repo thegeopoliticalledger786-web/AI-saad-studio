@@ -280,54 +280,49 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
-  const payload: Record<string, unknown> = {
-    model: "gemini-1.5-flash",
-    messages: messages.map(normalizeMessage),
-  };
-
-  if (tools && tools.length > 0) {
-    payload.tools = tools;
-  }
-
-  const normalizedToolChoice = normalizeToolChoice(
-    toolChoice || tool_choice,
-    tools
-  );
-  if (normalizedToolChoice) {
-    payload.tool_choice = normalizedToolChoice;
-  }
-
-  payload.max_tokens = 32768
-  payload.thinking = {
-    "budget_tokens": 128
-  }
-
-  const normalizedResponseFormat = normalizeResponseFormat({
-    responseFormat,
-    response_format,
-    outputSchema,
-    output_schema,
+  const geminiMessages = messages.map(m => {
+    const role = m.role === "assistant" ? "model" : "user";
+    const parts = Array.isArray(m.content) 
+      ? m.content.map(p => typeof p === "string" ? { text: p } : "text" in p ? { text: p.text } : { text: JSON.stringify(p) })
+      : [{ text: typeof m.content === "string" ? m.content : JSON.stringify(m.content) }];
+    return { role, parts };
   });
 
-  if (normalizedResponseFormat) {
-    payload.response_format = normalizedResponseFormat;
-  }
+  const payload = {
+    contents: geminiMessages,
+    generationConfig: {
+      maxOutputTokens: 2048,
+      temperature: 0.7,
+    }
+  };
 
-  const response = await fetch(resolveApiUrl(), {
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${ENV.forgeApiKey}`;
+
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
+    console.error("Gemini API Error:", errorText);
+    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
   }
 
-  return (await response.json()) as InvokeResult;
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
+
+  return {
+    id: data.usageMetadata?.promptTokenCount?.toString() || "gemini",
+    created: Date.now(),
+    model: "gemini-1.5-flash",
+    choices: [{
+      index: 0,
+      message: { role: "assistant", content: text },
+      finish_reason: "stop"
+    }]
+  } as InvokeResult;
 }
